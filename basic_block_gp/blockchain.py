@@ -12,7 +12,7 @@ class Blockchain(object):
         self.current_transactions = []
         self.nodes = set()
 
-        self.new_block(previous_hash=1, proof=100)
+        self.new_block(previous_hash=1, proof=99)
 
     def new_block(self, proof, previous_hash=None):
         """
@@ -64,7 +64,6 @@ class Blockchain(object):
         "return": <str>
         """
 
-
         # json.dumps converts json into a string
         # hashlib.sha246 is used to createa hash
         # It requires a `bytes-like` object, which is what
@@ -78,7 +77,7 @@ class Blockchain(object):
         # that will likely include escaped characters.
         # This can be hard to read, but .hexdigest() converts the
         # hash to a string using hexadecimal characters, which is
-        # easer to work with and understand.  
+        # easer to work with and understand.
         return hashlib.sha256(block_string).hexdigest()
 
     @property
@@ -93,11 +92,20 @@ class Blockchain(object):
         :return: A valid proof for the provided block
         """
         # TODO
-        pass
-        # return proof
+        proof = 0
+        while self.valid_proof(last_proof, proof) is False:
+            proof += 1
+        return proof
 
     @staticmethod
-    def valid_proof(block_string, proof):
+    def valid_proof(prev_block, proof):
+        # hashit
+        guess = f'{last_proof}{proof}'.encode()
+        # ithash
+        guess_hash = hashlib.sha256(guess).hexdigest()
+        # 6 0's?
+        zeros = guess_hash[:6]
+        return zeros == '000000'
         """
         Validates the Proof:  Does hash(block_string, proof) contain 6
         leading zeroes?  Return true if the proof is valid
@@ -154,17 +162,18 @@ blockchain = Blockchain()
 @app.route('/mine', methods=['GET'])
 def mine():
     # We run the proof of work algorithm to get the next proof...
-    proof = blockchain.proof_of_work()
+    proof = blockchain.proof_of_work(blockchain.last_block)
 
     # We must receive a reward for finding the proof.
     # TODO:
+    blockchain.new_transaction(0, node_identifier, 1)
     # The sender is "0" to signify that this node has mine a new coin
     # The recipient is the current node, it did the mining!
     # The amount is 1 coin as a reward for mining the next block
 
     # Forge the new Block by adding it to the chain
     # TODO
-
+    block = blockchain.new_block(proof, blockchain.hash(blockchain.last_block))
     # Send a response with the new block
     response = {
         'message': "New Block Forged",
@@ -198,6 +207,9 @@ def new_transaction():
 def full_chain():
     response = {
         # TODO: Return the chain and its current length
+        'currentChain': blockchain.chain,
+        'length': len(blockchain.chain)
+
     }
     return jsonify(response), 200
 
